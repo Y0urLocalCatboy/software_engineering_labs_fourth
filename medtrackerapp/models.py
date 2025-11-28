@@ -18,7 +18,7 @@ class Medication(models.Model):
 
     def __str__(self):
         """Return a human-readable representation of the medication."""
-        return f"{self.name} ({self.dosage_mg}mg)"
+        return f"{self.dosage_mg} ({self.dosage_mg}mg)"
 
     def adherence_rate(self):
         """
