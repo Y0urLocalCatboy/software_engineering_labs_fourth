@@ -52,6 +52,58 @@ class MedicationViewSet(viewsets.ModelViewSet):
         return Response(data)
 
 
+    @action(detail=True, methods=["get"], url_path="expected-doses")
+    def expected_doses(self, request, pk=None):
+        """
+        Calculate expected doses for a medication over a given number of days.
+
+        GET /api/medications/{id}/expected-doses/?days=X
+
+        Args:
+            request (Request): The current HTTP request.
+            pk (int): Primary key of the medication record.
+
+         Returns:
+            Response:
+                - 200 OK: Expected doses calculated successfully.
+                - 400 BAD REQUEST: If days parameter is missing or invalid.
+                - 404 NOT FOUND: If medication doesn't exist.
+        """
+        medication = self.get_object()
+
+        days_param = request.query_params.get('days')
+        if days_param is None:
+            return Response(
+                {"error": "days parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            days = int(days_param)
+            if days <= 0:
+                return Response(
+                    {"error": "days must be a positive integer"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValueError:
+            return Response(
+                {"error": "days must be a valid integer"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            expected = medication.expected_doses(days)
+            return Response({
+                "medication_id": medication.id,
+                "days": days,
+                "expected_doses": expected
+            }, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 class DoseLogViewSet(viewsets.ModelViewSet):
     """
     API endpoint for viewing and managing dose logs.
