@@ -2,9 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils.dateparse import parse_date
-from .models import Medication, DoseLog
-from .serializers import MedicationSerializer, DoseLogSerializer
-
+from .models import Medication, DoseLog, Note
+from .serializers import MedicationSerializer, DoseLogSerializer, NoteSerializer
 class MedicationViewSet(viewsets.ModelViewSet):
     """
     API endpoint for viewing and managing medications.
@@ -51,6 +50,67 @@ class MedicationViewSet(viewsets.ModelViewSet):
             return Response(data, status=status.HTTP_502_BAD_GATEWAY)
         return Response(data)
 
+    @action(detail=True, methods=["get"], url_path="expected-doses")
+    def expected_doses(self, request, pk=None):
+        """
+        Calculate expected doses for a medication over a given number of days.
+
+        This endpoint computes the total number of doses a patient should take
+        based on the medication's prescribed daily frequency and the specified
+        time period.
+
+        Query Parameters:
+            days (int, required): Number of days for the calculation.
+                                  Must be a positive integer.
+
+        Returns:
+            Response:
+                - 200 OK: Returns medication_id, days, and expected_doses.
+                - 400 BAD REQUEST: If days parameter is missing, invalid, or
+                  the model raises a ValueError.
+                - 404 NOT FOUND: If medication doesn't exist.
+
+        Example:
+            GET /api/medications/1/expected-doses/?days=7
+            Response: {"medication_id": 1, "days": 7, "expected_doses": 14}
+        """
+        medication = self.get_object()
+
+        days_param = request.query_params.get('days')
+
+        if days_param is None:
+            return Response(
+                {"error": "Query parameter 'days' is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            days = int(days_param)
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Query parameter 'days' must be a valid integer."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if days <= 0:
+            return Response(
+                {"error": "Query parameter 'days' must be a positive integer."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            expected_dose_count = medication.expected_doses(days)
+        except ValueError as e:
+            return Response(
+                {"error": f"Calculation failed: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response({
+            "medication_id": medication.id,
+            "days": days,
+            "expected_doses": expected_dose_count
+        }, status=status.HTTP_200_OK)
 
 class DoseLogViewSet(viewsets.ModelViewSet):
     """
@@ -105,3 +165,41 @@ class DoseLogViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(logs, many=True)
         return Response(serializer.data)
+class NoteViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for viewing and managing medication notes.
+
+    Provides operations for listing, retrieving, creating, and
+    deleting notes. Updating existing notes is not supported.
+
+    Notes are associated with medications and automatically timestamped
+    on creation. They are ordered by creation date (newest first).
+
+    Endpoints:
+        - GET /api/notes/ — list all notes
+        - POST /api/notes/ — create a new note
+        - GET /api/notes/{id}/ — retrieve a specific note
+        - DELETE /api/notes/{id}/ — delete a note
+
+    Unsupported Operations:
+        - PUT /api/notes/{id}/ — update entire note (405 METHOD NOT ALLOWED)
+        - PATCH /api/notes/{id}/ — partial update (405 METHOD NOT ALLOWED)
+
+    Example:
+        POST /api/notes/
+        {
+            "medication": 1,
+            "text": "Take with food to avoid stomach upset"
+        }
+
+        Response (201 CREATED):
+        {
+            "id": 3,
+            "medication": 1,
+            "text": "Take with food to avoid stomach upset",
+            "created_at": "2025-01-15"
+        }
+    """
+    queryset = Note.objects.all()
+    serializer_class = NoteSerializer
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
