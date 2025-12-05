@@ -2,9 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils.dateparse import parse_date
-from .models import Medication, DoseLog
-from .serializers import MedicationSerializer, DoseLogSerializer
-
+from .models import Medication, DoseLog, Note
+from .serializers import MedicationSerializer, DoseLogSerializer, NoteSerializer
 class MedicationViewSet(viewsets.ModelViewSet):
     """
     API endpoint for viewing and managing medications.
@@ -166,3 +165,19 @@ class DoseLogViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(logs, many=True)
         return Response(serializer.data)
+class NoteViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for viewing and managing notes.
+
+    Provides operations for listing, retrieving, creating, and
+    deleting notes. Updating notes is not supported.
+
+    Endpoints:
+        - GET /api/notes/ — list all notes
+        - POST /api/notes/ — create a new note
+        - GET /api/notes/{id}/ — retrieve a specific note
+        - DELETE /api/notes/{id}/ — delete a note
+    """
+    queryset = Note.objects.all()
+    serializer_class = NoteSerializer
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']

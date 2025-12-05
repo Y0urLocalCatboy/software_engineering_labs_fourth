@@ -3,7 +3,6 @@ from datetime import date as _date
 from django.utils import timezone
 from .services import DrugInfoService
 
-
 class Medication(models.Model):
     """
     Represents a prescribed medication with dosage and daily schedule.
@@ -127,3 +126,23 @@ class DoseLog(models.Model):
         status = "Taken" if self.was_taken else "Missed"
         when = timezone.localtime(self.taken_at).strftime("%Y-%m-%d %H:%M")
         return f"{self.medication.name} at {when} - {status}"
+
+class Note(models.Model):
+    """
+    Represents a note associated with a medication.
+
+    Each note stores text content and the creation date, linked to
+    a specific medication via foreign key.
+    """
+
+    medication = models.ForeignKey(Medication, on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateField(auto_now_add=True)
+
+    class Meta:
+        """Metadata options for the Note model."""
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        """Return a human-readable representation of the note."""
+        return f"Note for {self.medication.name} on {self.created_at}"
