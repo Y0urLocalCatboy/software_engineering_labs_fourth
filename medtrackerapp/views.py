@@ -167,7 +167,7 @@ class DoseLogViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 class NoteViewSet(viewsets.ModelViewSet):
     """
-    API endpoint for viewing and managing notes.
+    API endpoint for viewing and managing notes
 
     Provides operations for listing, retrieving, creating, and
     deleting notes. Updating notes is not supported.
