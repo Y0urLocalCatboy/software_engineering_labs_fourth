@@ -167,16 +167,38 @@ class DoseLogViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 class NoteViewSet(viewsets.ModelViewSet):
     """
-    API endpoint for viewing and managing notes
+    API endpoint for viewing and managing medication notes.
 
     Provides operations for listing, retrieving, creating, and
-    deleting notes. Updating notes is not supported.
+    deleting notes. Updating existing notes is not supported.
+
+    Notes are associated with medications and automatically timestamped
+    on creation. They are ordered by creation date (newest first).
 
     Endpoints:
         - GET /api/notes/ — list all notes
         - POST /api/notes/ — create a new note
         - GET /api/notes/{id}/ — retrieve a specific note
         - DELETE /api/notes/{id}/ — delete a note
+
+    Unsupported Operations:
+        - PUT /api/notes/{id}/ — update entire note (405 METHOD NOT ALLOWED)
+        - PATCH /api/notes/{id}/ — partial update (405 METHOD NOT ALLOWED)
+
+    Example:
+        POST /api/notes/
+        {
+            "medication": 1,
+            "text": "Take with food to avoid stomach upset"
+        }
+
+        Response (201 CREATED):
+        {
+            "id": 3,
+            "medication": 1,
+            "text": "Take with food to avoid stomach upset",
+            "created_at": "2025-01-15"
+        }
     """
     queryset = Note.objects.all()
     serializer_class = NoteSerializer
